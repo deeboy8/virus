@@ -2,17 +2,17 @@
 
 ## Overview
 
-This Python project simulates the spread of a virus on the island of Nantucket, with a population of around 10,000 people. It explores the effects of different factors, such as vaccination rates and transmission probability, on the progression of a viral outbreak. This simulation provides insights into how preventive measures can mitigate the impact of the virus.
+This Python project simulates the spread of a virus on the island of Nantucket, with a population of approximately 10,000 people. It explores the effects of different factors, such as vaccination rates and transmission probability, on the progression of a viral outbreak. This simulation provides insights into how preventive measures can mitigate the impact of the virus.
 
 ## Project Structure
 
 The project consists of three main Python scripts:
 
-1. **simulate.py**: Simulates the virus's progression over a 100-day period. It tracks the health status of the population, categorizing individuals as susceptible, infected, recovered, vaccinated, or dead. You can explore the effects of different vaccination rates and transmission probabilities on the virus spread.
+1. **simulate.py**: Simulates the virus's progression over a 100-day period. It tracks the health status of the population, categorizing individuals as susceptible, infected, recovered, vaccinated, or dead. Via command line options, you can explore the effects of different vaccination rates and transmission probabilities on the virus spread.
 
-2. **analyze.py**: Runs multiple trials (e.g., 1,000) of the simulation to calculate the average number of deaths and the standard deviation. This script helps to analyze the impact of random variations and better understand the overall trends.
+2. **analyze.py**: Runs multiple trials (e.g., 1,000) of the simulation to calculate the average number of deaths and the standard deviation. This script helps to analyze the impact of random variations and better understand overall trends.
 
-3. **visualize.py**: Generates histograms to visualize the number of deaths after running the simulation multiple times. This provides a graphical representation of how varying factors influence the outcome of the virus spread.
+3. **visualize.py**: Will generate histograms to visualize the number of deaths after running the simulation multiple times. This provides a graphical representation of how varying factors influence the outcome of the virus spread.
 
 ## Key Features
 
@@ -106,4 +106,3 @@ python visualize.py 1000 1250 analyze_output.csv visualize_output.csv
 ## Conclusion
 
 This Python-based simulation provides insights into how factors like vaccination and transmission probability affect the spread of a virus. By adjusting the parameters, you can experiment with different scenarios and understand the critical impact of public health measures on virus outbreaks.
-
