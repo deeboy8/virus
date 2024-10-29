@@ -21,24 +21,26 @@ inheritance:
 
 DEFAULT_POPULATION = 10000 #if user doesn't supply, then use this 
 
-class Simulate:
+class Simulation: # changed simulation from simulate
     '''this makes Simulate class singularly focused; hard coding values vs user passing in'''
     def __init__(self, population: int = DEFAULT_POPULATION):
-        self.population = population
+        self._population = population # make all instance vars private, and properites to access them
     DAYS = 100
     INFECTED_INITIAL = 100
 
-    def get_population(self) -> int:
-        return self.population
+    @property
+    def _population(self) -> int:
+        return self._population
     
     '''get to control how it gets changed vs ther caller'''
-    def set_population(self, population: int): #setters typicaly dont return anything
+    @_population.setter
+    def _population(self, population: int): #setters typicaly dont return anything
         if population < 0:
             # Exception:
                 #enter code for exception
             pass
                 
-        self.population = population 
+        self._population = population 
 
 
     # determine if a SINGLE SUSCEPTIBLE individual becomes infected
