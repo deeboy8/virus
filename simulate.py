@@ -1,12 +1,12 @@
 from enum import Enum
 from typing import List
+from dataclasses import dataclass
+import random
 
-class HealthStatus(Enum):
-    SUSCEPTIBLE = 0,
-    RECOVERED = -1,
-    VACCINATED = -2,
-    DEAD = -3,
-    INFECTED = 4 #TODO: ????? CHALLENGE: NOT JUST A STATE BUT A COUNT AKA # DAYS USER IS INFECTED -> how get around this! representing state and count
+#notes:
+    # think about individual classes as actions and prop.
+    # #what are the internal tings I need to worry about like getters and setters
+
 '''
 OOP: about relationships between things; IS-A and HAS-A as test to apply to relationship
     - example: IS-A (done via inheritance)
@@ -15,61 +15,122 @@ OOP: about relationships between things; IS-A and HAS-A as test to apply to rela
     - example: HAS-A (via encapsulation: represented by variables inside a class)
         moved constants into constructor 
         siumulation uses encapsulation!!!! it HAS-A population
-
-inheritance: 
 '''
 
-DEFAULT_POPULATION = 10000 #if user doesn't supply, then use this 
+DEFAULT_POPULATION = 10000 
+DEFAULT_DAYS = 100
+DEFAULT_INFECTED_INITIAL = 100
+MAX_NEXPOSURES: int = 21
 
-class Simulation: # changed simulation from simulate
-    '''this makes Simulate class singularly focused; hard coding values vs user passing in'''
-    def __init__(self, population: int = DEFAULT_POPULATION):
-        self._population = population # make all instance vars private, and properites to access them
-    DAYS = 100
-    INFECTED_INITIAL = 100
+class HealthStatus(Enum):
+    SUSCEPTIBLE = 0,
+    RECOVERED = -1,
+    VACCINATED = -2,
+    DEAD = -3,
+    INFECTED = 4 #TODO: ????? CHALLENGE: NOT JUST A STATE BUT A COUNT AKA # DAYS USER IS INFECTED -> how get around this!
+
+class Simulation:
+    def __init__(self, population: int = DEFAULT_POPULATION, days: int = DEFAULT_DAYS, 
+                 infected: int = DEFAULT_INFECTED_INITIAL):
+        self._population = population #should not be touched directly
+        self._days = days
+        self._infected = infected
+
+    status: int = []
+    new_status: int = []
+    '''creating a public prop onto private data'''
 
     @property
-    def _population(self) -> int:
-        return self._population
+    def population(self) -> int:
+        '''The population property'''
+        return self.population 
     
-    '''get to control how it gets changed vs ther caller'''
-    @_population.setter
-    def _population(self, population: int): #setters typicaly dont return anything
+    @population.setter
+    def population(self, population: int):
         if population < 0:
-            # Exception:
-                #enter code for exception
-            pass
-                
+            raise ValueError("population can not be a negative number")
         self._population = population 
 
-
-    # determine if a SINGLE SUSCEPTIBLE individual becomes infected
-    # simulate random number of encounters 
-    def catch_or_not(self, tprob: int, npeople: int, status: List) -> int:
-        # generate random num of people for exposure
-        # generate n_exposure = arbitrary count of exposures individual encountered)
-        # iterate over n_exposures
-            # create other_person (via rand gen) = random person from 10k list (?)
-            # check if other_person sick by comp against tprob
-        # if value > 1, person on first day of sickness (add to new_status/day_end)
-        # return is_sus if no encounters result in infection
-        pass
+    @property
+    def days(self) -> int:
+        '''The days property'''
+        return self._days
     
-    # TODO: checks if individual stays sick, dies or gets better
-    def die_or_not(self, dprob: int, sick_days: int, person: int, npeople: int, status: List):
-        pass 
+    @days.setter
+    def days(self, days: int):
+        if days < 0:
+            raise ValueError("days can not be a negative number")
+        self.days = days
+    
+    @property
+    def infected(self) -> int:
+        '''The infected property'''
+        return self._days
+    
+    @days.setter
+    def infected(self, infected: int):
+        if infected < 0:
+            raise ValueError("counted of infected individuals can not be a negative number")
+        self.infected = infected
+    
+    #TODO: do we want this
+    def write_to_file():
+        pass
 
- #example 1: no properties
-    new_sim = Simulate(500)
-    new_sim.population = -1 #accessing memory and changing
-
-#xample 2
-    new_sim.set_population(-1) #using a function call
-
+# @dataclass
 class Person:
-    def __init__(self, health_status: HealthStatus = HealthStatus.SUSCEPTIBLE):
-        self._health_status = health_status
+    MAX_SICK_DAYS: int = 14
+    
+    def __init__(self, health_status: HealthStatus = HealthStatus.SUSCEPTIBLE, sick_days: int = 0):
+        self.health_status: HealthStatus = health_status
+        self.sick_days: int = 0 #num of days person is sick
+    # health_status: HealthStatus
+    # sick_days: int 
+    
+    def catch_or_not(self, tprob: float, status: List, nexposure: int, other_person: int, other_person_tprob: float) -> int: 
+        if tprob < 0 or tprob > 1:
+            raise ValueError("tprob must be between 0 and 1")
+        if len(status) == 0:
+            raise IndexError("empty range for status")
+        # iterate to simulate person interacting with nexposure number of people each day
+        for i in range(nexposure):
+            if status[other_person] > 0: 
+                # person is now infected by other_person if other_person_tprob < tprob
+                if other_person_tprob < tprob:
+                    return 1
+        # return is_susceptible value for the day if not infected from random interactions for the day 
+        return HealthStatus.SUSCEPTIBLE
 
-        #ASSIGNMENT: using prop decorator, write the getters and setters for health_status 
-        #think about: what other prop or actions need to be defined for these classes
-        #unit tests
+    # checks if individual stays sick, dies or gets better
+    def die_or_not(self, dprob: float, sick_days: int, person: int, status: List, rand_dprob: float, sickness_factor: float):
+        if (dprob < 0 or dprob > 1):      
+            raise ValueError("dprob must be between 0 and 1")
+        if (rand_dprob < 0 or rand_dprob > 1):
+            raise ValueError("rand_dprob must be between 0 and 1")
+        if len(status) == 0:
+            raise IndexError("empty range for status")
+        if rand_dprob < dprob:
+            print("died")
+            return HealthStatus.DEAD
+        else:
+            # else must check if recovers or remains sick
+            sick_days_randomization = sick_days + 3.0 * sickness_factor
+            if status[person] > sick_days_randomization:
+                print("recovered")
+                return HealthStatus.RECOVERED
+            else:
+                print("still sick")
+                return status[person] + 1
+         
+
+def main():
+    # CLA: tprob, dprob, days_to_assess, population_count = DEFAULT_POPULATION, percent_initially_infected
+    # status = [0] * population count 
+    # new_status = [] # rename to status on each iteration loop 
+    status = [0, 1, 0, 3, 2, 2, 0, 1, 0, 3, 2, 2] 
+    person = Person()
+    person.catch_or_not(0.5, status)
+    person.die_or_not(0.15, person.MAX_SICK_DAYS, 6, status)
+
+if __name__ == "__main__":
+    main()
