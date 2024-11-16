@@ -2,20 +2,8 @@ from enum import Enum
 from typing import List
 from dataclasses import dataclass
 import random
-
-#notes:
-    # think about individual classes as actions and prop.
-    # #what are the internal tings I need to worry about like getters and setters
-
-'''
-OOP: about relationships between things; IS-A and HAS-A as test to apply to relationship
-    - example: IS-A (done via inheritance)
-        is a simulation a halth status? No!
-         - SO SIMULATE SHOULD NOT INHERIT FROM HEALTHSTATUS
-    - example: HAS-A (via encapsulation: represented by variables inside a class)
-        moved constants into constructor 
-        siumulation uses encapsulation!!!! it HAS-A population
-'''
+import typer
+from typing_extensions import Annotated
 
 DEFAULT_POPULATION = 10000 
 DEFAULT_DAYS = 100
@@ -28,6 +16,7 @@ class HealthStatus(Enum):
     VACCINATED = -2,
     DEAD = -3,
     INFECTED = 4 #TODO: ????? CHALLENGE: NOT JUST A STATE BUT A COUNT AKA # DAYS USER IS INFECTED -> how get around this!
+    #TODO: solution: DS => list of list with elements consisting of num days infected, status, etc?
 
 class Simulation:
     def __init__(self, population: int = DEFAULT_POPULATION, days: int = DEFAULT_DAYS, 
@@ -87,14 +76,14 @@ class Person:
     # health_status: HealthStatus
     # sick_days: int 
     
-    def catch_or_not(self, tprob: float, status: List, nexposure: int, other_person: int, other_person_tprob: float) -> int: 
+    def catch_or_not(self, tprob: float, status: List, nexposure: int, other_person: int, other_person_tprob: float) -> int: # neposure, other_person, other_person_tprob randomly generated
         if tprob < 0 or tprob > 1:
             raise ValueError("tprob must be between 0 and 1")
         if len(status) == 0:
             raise IndexError("empty range for status")
         # iterate to simulate person interacting with nexposure number of people each day
         for i in range(nexposure):
-            if status[other_person] > 0: 
+            if status[other_person][0] > 0: 
                 # person is now infected by other_person if other_person_tprob < tprob
                 if other_person_tprob < tprob:
                     return 1
@@ -102,7 +91,7 @@ class Person:
         return HealthStatus.SUSCEPTIBLE
 
     # checks if individual stays sick, dies or gets better
-    def die_or_not(self, dprob: float, sick_days: int, person: int, status: List, rand_dprob: float, sickness_factor: float):
+    def die_or_not(self, dprob: float, rand_dprob: float, sickness_factor: float, sick_days: int, person: int, status: List):
         if (dprob < 0 or dprob > 1):      
             raise ValueError("dprob must be between 0 and 1")
         if (rand_dprob < 0 or rand_dprob > 1):
@@ -115,22 +104,25 @@ class Person:
         else:
             # else must check if recovers or remains sick
             sick_days_randomization = sick_days + 3.0 * sickness_factor
-            if status[person] > sick_days_randomization:
+            if status[person][0] > sick_days_randomization:
                 print("recovered")
                 return HealthStatus.RECOVERED
             else:
-                print("still sick")
-                return status[person] + 1
+                print("still sick") 
+                return status[person][0] + 1
          
-
-def main():
-    # CLA: tprob, dprob, days_to_assess, population_count = DEFAULT_POPULATION, percent_initially_infected
-    # status = [0] * population count 
-    # new_status = [] # rename to status on each iteration loop 
-    status = [0, 1, 0, 3, 2, 2, 0, 1, 0, 3, 2, 2] 
-    person = Person()
-    person.catch_or_not(0.5, status)
-    person.die_or_not(0.15, person.MAX_SICK_DAYS, 6, status)
+def main(tprob: Annotated[float, typer.Argument()], dprob: Annotated[float, typer.Argument()],
+                population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION, infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
+                days: Annotated[int, typer.Argument()] = DEFAULT_DAYS):
+    columns = 2
+    # 2d list: two columns to hold length of infection (days), current_status (see Enum class above)
+    status = [[0] * columns for i in range(20)] #population_count] # [status, days_infected]
+    status_new = None
+    for day in range(days):
+        person = Person()
+        # for production use: nexpsure: random.randint(20), other_person: random.randint(population_count), other_person_tprob: random.random()
+        person.catch_or_not(tprob, status, 11, 17, 0.4)
+        person.die_or_not(0.15, 0.45, 0.07, person.MAX_SICK_DAYS, 5, status) # rand_dprob: random.random(), sickeness_factor: random.ran
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
