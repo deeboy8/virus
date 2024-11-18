@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import random
 import typer
 from typing_extensions import Annotated
+import sys
 
 DEFAULT_POPULATION = 10000 
 DEFAULT_DAYS = 100
@@ -83,10 +84,10 @@ class Person:
             raise IndexError("empty range for status")
         # iterate to simulate person interacting with nexposure number of people each day
         for i in range(nexposure):
-            if status[other_person][0] > 0: 
+            if status[other_person][1] > 0: 
                 # person is now infected by other_person if other_person_tprob < tprob
                 if other_person_tprob < tprob:
-                    return 1
+                    return HealthStatus.INFECTED, 1
         # return is_susceptible value for the day if not infected from random interactions for the day 
         return HealthStatus.SUSCEPTIBLE
 
@@ -111,18 +112,27 @@ class Person:
                 print("still sick") 
                 return status[person][0] + 1
          
-def main(tprob: Annotated[float, typer.Argument()], dprob: Annotated[float, typer.Argument()],
+def main(tprob: Annotated[float, typer.Argument()], dprob: Annotated[float, typer.Argument()], vprob: Annotated[float, typer.Argument()],
                 population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION, infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
                 days: Annotated[int, typer.Argument()] = DEFAULT_DAYS):
     columns = 2
+    nvaccinated = vprob * population_count
     # 2d list: two columns to hold length of infection (days), current_status (see Enum class above)
     status = [[0] * columns for i in range(20)] #population_count] # [status, days_infected]
     status_new = None
-    for day in range(days):
-        person = Person()
-        # for production use: nexpsure: random.randint(20), other_person: random.randint(population_count), other_person_tprob: random.random()
-        person.catch_or_not(tprob, status, 11, 17, 0.4)
-        person.die_or_not(0.15, 0.45, 0.07, person.MAX_SICK_DAYS, 5, status) # rand_dprob: random.random(), sickeness_factor: random.ran
+    # nested loop to iterate for each day with inner loop iterating over each individual determining if gets sick, dies, or ramains the same
+    for day in range(days): # iterate over each day
+        for person in range(len(status)): # iterate each person
+            # person = Person()
+            # # for production use: nexpsure: random.randint(20), other_person: random.randint(population_count), other_person_tprob: random.random()
+            # person.catch_or_not(tprob, status, 11, 17, 0.4)
+            # person.die_or_not(0.15, 0.45, 0.07, person.MAX_SICK_DAYS, 5, status) # rand_dprob: random.random(), sickeness_factor: random.ran
+            if status[person][0] == HealthStatus.SUSCEPTIBLE:
+                status_new[person][0], status_new[person][1] = Person.catch_or_not(tprob, status, random.randint(20), random.randint(population_count), random.random())
+            elif status[person][0] == HealthStatus.INFECTED:
+                status_new[person][0], status_new[person][1] = Person.die_or_not(dprob, random.random(), random.random(), Person.MAX_SICK_DAYS, status[person], status)
+    if __name__ == "__main__":
+        typer.run(main)
 
-if __name__ == "__main__":
-    typer.run(main)
+
+# if status is infected, must accoutn for status[0] as heathastatus.infected and status[1] which will be num days infected
