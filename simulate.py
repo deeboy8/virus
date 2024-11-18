@@ -67,6 +67,10 @@ class Simulation:
     def write_to_file():
         pass
 
+    #TODO: method to count values for each state at end of each day
+    def count_healthstatus_states():
+        pass
+
 # @dataclass
 class Person:
     MAX_SICK_DAYS: int = 14
@@ -131,6 +135,10 @@ def main(tprob: Annotated[float, typer.Argument()], dprob: Annotated[float, type
                 status_new[person][0], status_new[person][1] = Person.catch_or_not(tprob, status, random.randint(20), random.randint(population_count), random.random())
             elif status[person][0] == HealthStatus.INFECTED:
                 status_new[person][0], status_new[person][1] = Person.die_or_not(dprob, random.random(), random.random(), Person.MAX_SICK_DAYS, status[person], status)
+            else:
+                # assume person stays the same
+                # TODO: must increase day of infections by one
+                status_new[person][1] = status[person][1] + 1
     if __name__ == "__main__":
         typer.run(main)
 
