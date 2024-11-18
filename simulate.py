@@ -11,13 +11,15 @@ DEFAULT_DAYS = 100
 DEFAULT_INFECTED_INITIAL = 100
 MAX_NEXPOSURES: int = 21
 
-class HealthStatus(Enum):
+class HS(Enum, int):
     SUSCEPTIBLE = 0,
     RECOVERED = -1,
     VACCINATED = -2,
     DEAD = -3,
-    INFECTED = 4 #TODO: ????? CHALLENGE: NOT JUST A STATE BUT A COUNT AKA # DAYS USER IS INFECTED -> how get around this!
+    INFECTED = 1 #TODO: ????? CHALLENGE: NOT JUST A STATE BUT A COUNT AKA # DAYS USER IS INFECTED -> how get around this!
     #TODO: solution: DS => list of list with elements consisting of num days infected, status, etc?
+
+HealthStatus = HS | int
 
 class Simulation:
     def __init__(self, population: int = DEFAULT_POPULATION, days: int = DEFAULT_DAYS, 
@@ -81,14 +83,15 @@ class Person:
     # health_status: HealthStatus
     # sick_days: int 
     
-    def catch_or_not(self, tprob: float, status: List, nexposure: int, other_person: int, other_person_tprob: float) -> int: # neposure, other_person, other_person_tprob randomly generated
+    def catch_or_not(self, tprob: float, status: List, nexposure: int, other_person: int, other_person_tprob: float) -> HS: # neposure, other_person, other_person_tprob randomly generated
         if tprob < 0 or tprob > 1:
             raise ValueError("tprob must be between 0 and 1")
         if len(status) == 0:
             raise IndexError("empty range for status")
+        # account of if person dead
         # iterate to simulate person interacting with nexposure number of people each day
         for i in range(nexposure):
-            if status[other_person][1] > 0: 
+            if status[other_person] >= HealthStatus.INFECTED: 
                 # person is now infected by other_person if other_person_tprob < tprob
                 if other_person_tprob < tprob:
                     return HealthStatus.INFECTED, 1
@@ -96,7 +99,7 @@ class Person:
         return HealthStatus.SUSCEPTIBLE
 
     # checks if individual stays sick, dies or gets better
-    def die_or_not(self, dprob: float, rand_dprob: float, sickness_factor: float, sick_days: int, person: int, status: List):
+    def die_or_not(self, dprob: float, rand_dprob: float, sickness_factor: float, sick_days: int, person: int, status: List) -> HealthStatus | int:
         if (dprob < 0 or dprob > 1):      
             raise ValueError("dprob must be between 0 and 1")
         if (rand_dprob < 0 or rand_dprob > 1):
@@ -131,6 +134,14 @@ def main(tprob: Annotated[float, typer.Argument()], dprob: Annotated[float, type
             # # for production use: nexpsure: random.randint(20), other_person: random.randint(population_count), other_person_tprob: random.random()
             # person.catch_or_not(tprob, status, 11, 17, 0.4)
             # person.die_or_not(0.15, 0.45, 0.07, person.MAX_SICK_DAYS, 5, status) # rand_dprob: random.random(), sickeness_factor: random.ran
+            '''
+            if sta[per] == sus and person.catch_or_not():
+                sta[per] == healthstaus.infected
+            elif sta[per] == infected:
+                sta[per] = dieornot
+            else
+                sta[per] += 1
+            '''
             if status[person][0] == HealthStatus.SUSCEPTIBLE:
                 status_new[person][0], status_new[person][1] = Person.catch_or_not(tprob, status, random.randint(20), random.randint(population_count), random.random())
             elif status[person][0] == HealthStatus.INFECTED:
@@ -139,6 +150,7 @@ def main(tprob: Annotated[float, typer.Argument()], dprob: Annotated[float, type
                 # assume person stays the same
                 # TODO: must increase day of infections by one
                 status_new[person][1] = status[person][1] + 1
+   
     if __name__ == "__main__":
         typer.run(main)
 
