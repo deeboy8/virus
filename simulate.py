@@ -7,9 +7,9 @@ import typer
 from typing_extensions import Annotated
 import sys
 
-DEFAULT_POPULATION = 10000 
-DEFAULT_DAYS = 100
-DEFAULT_INFECTED_INITIAL = 100
+DEFAULT_POPULATION = 1000 
+DEFAULT_DAYS = 50
+DEFAULT_INFECTED_INITIAL = 10
 MAX_NEXPOSURES: int = 21
 
 class HS(int, Enum):
@@ -61,9 +61,21 @@ class Simulation:
             raise ValueError("counted of infected individuals can not be a negative number")
         self.infected = infected
     
-    #TODO: do we want this
-    def write_to_file():
-        pass
+    # function to aggregate results from one day of analysis
+    # consists of health statuses as keys and counts as values
+    def aggregate_health_status_counts(population: List['Person']) -> dict:
+        status_counts = {
+            HS.SUSCEPTIBLE: 0,
+            HS.INFECTED: 0,
+            HS.RECOVERED: 0,
+            HS.DEAD: 0,
+            HS.VACCINATED: 0
+        }
+
+        for person in population:
+            status_counts[person.health_status] += 1
+
+        return status_counts
 
     #TODO: method to count values for each state at end of each day
     def count_healthstatus_states():
@@ -130,13 +142,14 @@ def main(tprob: Annotated[float, typer.Argument()] = 0.5, dprob: Annotated[float
                 days: Annotated[int, typer.Argument()] = DEFAULT_DAYS):
     nvaccinated = vprob * population_count
     # generate list of Person objects with some set to health_status.INFECTED based on infected value passed on CL
-    population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(3)] + [Person(transmission_rate=random.random()) for _ in range(5)] 
+    population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population_count - infected)] 
     random.shuffle(population)
-    for i in population:
-        print(i)
+    # for i in population:
+    #     print(i)
     # nested loop iterating over each day
     # the inner loop iterates over each individual to determine if person gets sick, gets well, dies, or remains sick and increases day of infection by 1 day
     for day in range(days): # iterate over each day
+
         for person in population: # check each persons status on each day
             if person.health_status == HS.SUSCEPTIBLE:
                 nexposures: int = random.randint(1, 8) # randomly generate int to simulate numer of exposures Person objects encounters for the day
@@ -154,17 +167,24 @@ def main(tprob: Annotated[float, typer.Argument()] = 0.5, dprob: Annotated[float
                     else: 
                         person.sick_days += 1
             elif person.health_status == HS.RECOVERED:
-                continue
+                continue 
             
-            # write count of health_statuses to file for data collection
-                # generate fx to tally up w vars and place in dict: susceptible, recovered, nvaccinated, infected and dead for each day
-                    # add to a pandas dataframe for data collection
-            # switch status to new_health_statuses
+        # aggregate count of health_statuses to file for data collection
+        
+        # aggregate_health_status_counts(population)
+        # Inside your main loop after processing daily changes:
+        daily_counts = Simulation.aggregate_health_status_counts(population)
+        # print(f"Day {day} status counts:", daily_counts)
+
+
+            # generate fx to tally up w vars and place in dict: susceptible, recovered, nvaccinated, infected and dead for each day
+                # add to a pandas dataframe for data collection
+        # switch status to new_health_statuses
         
     print('________________________')
     print('\n')
-    for i in population:
-        print(i)
+    # for i in population:
+    #     print(i)
 
 if __name__ == "__main__":
     typer.run(main)
