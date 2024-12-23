@@ -8,10 +8,13 @@ from typing_extensions import Annotated
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
+from pydantic import BaseModel, Field
 
-DEFAULT_POPULATION = 10 
-DEFAULT_DAYS = 10
-DEFAULT_INFECTED_INITIAL = 10
+app = typer.Typer()
+
+DEFAULT_POPULATION = 1000
+DEFAULT_DAYS = 100
+DEFAULT_INFECTED_INITIAL = 20
 MAX_NEXPOSURES: int = 21
 
 class HS(int, Enum):
@@ -80,19 +83,75 @@ class Simulation:
 
         return status_counts
 
-    #TODO: method to count values for each state at end of each day
-    def count_healthstatus_states():
-        pass
+    # #TODO: method to count values for each state at end of each day
+    # def d():
+    #     pass
 
-@dataclass
-class Person:
+    def write_status_counts_to_file(df: pd.DataFrame, filename: str): 
+        df.to_csv(filename, index = False)
+
+    def plot(df: pd.DataFrame):
+        # Create the plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(df['Day'], df[HS.SUSCEPTIBLE], label='Susceptible', color='blue')
+        plt.plot(df['Day'], df[HS.INFECTED], label='Infected', color='red')
+        plt.plot(df['Day'], df[HS.RECOVERED], label='Recovered', color='green')
+        plt.plot(df['Day'], df[HS.DEAD], label='Dead', color='black')
+
+        # Customize the plot
+        plt.title('Virus Spread Simulation Over Time')
+        plt.xlabel('Days')
+        plt.ylabel('Number of People')
+        plt.legend()
+        plt.grid(True)
+
+        # Save and show the plot
+        plt.savefig('virus_simulation.png')
+        plt.show() 
+    
+    def run(df: pd.DataFrame, tprob: float, dprob: float, days: int, population: List['Person'], ntrials = 1): #remove ntrials and dataframes
+        '''create empty df'''
+        for day in range(days): # iterate over each day
+            '''create zero'd row in df to be updated with each iteration'''
+            for person in population: # check each persons status on each day
+                if person.health_status == HS.SUSCEPTIBLE:
+                    nexposures: int = random.randint(1, 8) # randomly generate int to simulate number of exposures Person objects encounters each day
+                    other_persons_list: List[Person] = random.sample(population, random.randint(1, min(nexposures, len(population)))) 
+                    if person.catch_or_not(tprob, other_persons_list):
+                        person.health_status = HS.INFECTED
+                        person.sick_days = 1
+                elif person.health_status == HS.INFECTED:
+                    if person.die_or_not(dprob, random.random(), random.random(), person):
+                        person.health_status = HS.DEAD
+                    else:
+                        days_sick = person.num_sick_days_greater_than_max_sick_days(person, random.random())
+                        if days_sick > 14:
+                            person.health_status = HS.RECOVERED
+                            '''df[hs.recovered] += 1'''
+                        else: 
+                            person.sick_days += 1
+                elif person.health_status == HS.RECOVERED:
+                    continue 
+            # if ntrials == 1:
+            #     Simulation.compile_each_days_health_status_counts(df, population, day)
+            # RETURN A DATAFRAME =>
+    
+    def compile_each_days_health_status_counts(df: pd.DataFrame, population: List['Person'], day):
+        daily_counts = Simulation.aggregate_health_status_counts(population) 
+        daily_counts['Day'] = day
+        # add each days aggregated counts to dataframe df
+        df.loc[day] = daily_counts
+
+# @dataclass
+class Person(BaseModel):
     MAX_SICK_DAYS: int = 14
     
     # def __init__(self, health_status: HealthStatus = HealthStatus.SUSCEPTIBLE, sick_days: int = 0):
     #     self.health_status: HealthStatus = health_status
     #     self.sick_days: int = 0 #num of days person is sick
     health_status: HealthStatus = HS.SUSCEPTIBLE
-    sick_days: int = 0
+    # sick_days: int = 0
+    sick_days: int = Field(0, gt=0, le=1)
     transmission_rate: float = random.random() #being treated as a class var -> getting hit once and setting all 12/4
 
     def check_if_infected(self, tprob: float, other_persons: List['Person']) -> bool:
@@ -119,9 +178,7 @@ class Person:
         # sick_days_randcomization = person.sick_days + 3.0 * sickness_factor
         return person.sick_days + 3.0 * sickness_factor
         # if person.sick_days > sick_days_randomization:
-            
 
-    
     def check_if_survive(self, dprob: float, rand_dprob: float, sickness_factor: float, person: 'Person') -> bool:
         if rand_dprob < dprob:
             return True
@@ -129,6 +186,7 @@ class Person:
 
     # checks if individual stays sick, dies or gets better
     def die_or_not(self, dprob: float, rand_dprob: float, sickness_factor: float, person: 'Person') -> bool: #, population: List) -> bool:
+        # parameter argument validation
         if (sickness_factor < 0 or sickness_factor > 1):      
             raise ValueError("sickness_factor must be between 0 and 1")
         if (dprob < 0 or dprob > 1):      
@@ -138,103 +196,101 @@ class Person:
         # if len(population) == 0:
         #     raise IndexError("empty range for population")
         return self.check_if_survive(dprob, rand_dprob, sickness_factor, person)
-        
-         
+
+@app.command
+def visualize():
+    pass
+
+@app.command
+def analyze(): # concerned with writing down the avg deaths for each trial run
+    # run simulate n times using foor loop
+        # determine statistical analysis for each 100 day simulation
+            # return avg number of deaths and std dev
+    pass
+
+@app.command
+def simulate(tprob: float, dprob: float, days: int, population: List['Person']): '''create a simulation object'''
+    ntrials = 1
+    # create empty pandas dataframe
+    df = pd.DataFrame(columns=['Day', HS.SUSCEPTIBLE, HS.INFECTED, HS.RECOVERED, HS.DEAD, HS.VACCINATED])
+
+    # run simulation 
+    Simulation.run(df, tprob, dprob, days, population, ntrials)
+    Simulation.compile_each_days_health_status_counts(df)
+    Simulation.write_status_counts_to_file(df, 'simulation_n1',)
+
+@app.command
 def main(tprob: Annotated[float, typer.Argument()] = 0.5, dprob: Annotated[float, typer.Argument()] = 0.5, vprob: Annotated[float, typer.Argument()] = 0.5,
                 population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION, infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
-                days: Annotated[int, typer.Argument()] = DEFAULT_DAYS):
+                days: Annotated[int, typer.Argument()] = DEFAULT_DAYS): 
+    ''' 12/23
+        - dont need all these commands for main -> add to subcommands
+        '''
     nvaccinated = vprob * population_count
     # generate list of Person objects
-    # some are set to health_status.INFECTED based on infected value passed on CL
-    # population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population_count - infected)] 
-    population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(4)] + [Person(transmission_rate=random.random()) for _ in range(25)] 
-     
+    # a count based on the CL value passed are intialized to a health status of infected 
+    population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population_count - infected)]      
+    # p = Person(sick_days = 15)
     random.shuffle(population)
-    # df = pd.DataFrame() #'Day', 'HS.SUSCEPTIBLE', 'HS.INFECTED', 'HS.RECOVERED', 'HS.DEAD', 'HS.VACCINATED')
 
-    # for i in population:
-    #     print(i)
-    all_daily_counts = []
     # nested loop to iterate over each day
-    # the inner loop iterates over each Person object in the population list to determine if person gets sick, gets well, dies, or remains sick 
-    for day in range(days): # iterate over each day
-        for person in population: # check each persons status on each day
-            if person.health_status == HS.SUSCEPTIBLE:
-                nexposures: int = random.randint(1, 8) # randomly generate int to simulate number of exposures Person objects encounters each day
-                other_persons_list: List[Person] = random.sample(population, random.randint(1, min(nexposures, len(population)))) 
-                if person.catch_or_not(tprob, other_persons_list):
-                    person.health_status = HS.INFECTED
-                    person.sick_days = 1
-            elif person.health_status == HS.INFECTED:
-                if person.die_or_not(dprob, random.random(), random.random(), person):
-                    person.health_status = HS.DEAD
-                else:
-                    days_sick = person.num_sick_days_greater_than_max_sick_days(person, random.random())
-                    if days_sick > 14:
-                        person.health_status == HS.RECOVERED
-                    else: 
-                        person.sick_days += 1
-            elif person.health_status == HS.RECOVERED:
-                continue 
-            
-        # aggregate count of health_statuses to file for data collection
+    # inner loop iterates over each Person object in the population list to determine if person gets sick, gets well, dies, or remains sick 
+    # for day in range(days): # iterate over each day
+    #     for person in population: # check each persons status on each day
+    #         if person.health_status == HS.SUSCEPTIBLE:
+    #             nexposures: int = random.randint(1, 8) # randomly generate int to simulate number of exposures Person objects encounters each day
+    #             other_persons_list: List[Person] = random.sample(population, random.randint(1, min(nexposures, len(population)))) 
+    #             if person.catch_or_not(tprob, other_persons_list):
+    #                 person.health_status = HS.INFECTED
+    #                 person.sick_days = 1
+    #         elif person.health_status == HS.INFECTED:
+    #             if person.die_or_not(dprob, random.random(), random.random(), person):
+    #                 person.health_status = HS.DEAD
+    #             else:
+    #                 days_sick = person.num_sick_days_greater_than_max_sick_days(person, random.random())
+    #                 if days_sick > 14:
+    #                     person.health_status == HS.RECOVERED
+    #                 else: 
+    #                     person.sick_days += 1
+    #         elif person.health_status == HS.RECOVERED:
+    #             continue 
+        
+        # aggregate each days count of health statuses
+        # returns a dict of health statuses and counts for the day
+        # daily_counts = Simulation.aggregate_health_status_counts(population) 
+        # daily_counts['Day'] = day
+        # # add each days aggregated counts to dataframe df
+        # df.loc[day] = daily_counts
 
-        # aggregate_health_status_counts(population)
-        # Inside your main loop after processing daily changes:
-        daily_counts = Simulation.aggregate_health_status_counts(population) # returns a dict of health status and their daily counts
-        daily_counts['Day'] = day # adds an entry to the dict to label the specific day
-        # x = df.from_dict(daily_counts, orient='index')
-        # print(x)
-        # df.to_csv('out.csv', index = False)
-        # daily_counts = Simulation.aggregate_health_status_counts(population) # returns a dict of health status and their daily counts
-        # daily_counts['Day'] = day # adds an entry to the dict to label the specific day
-        # x = df.from_dict(daily_counts, orient='index')
-        # print(x)
-        # df.to_csv('out.csv', index = False)
-        all_daily_counts.append(daily_counts)
-
-    df = pd.DataFrame(all_daily_counts)
-    df.to_csv('out.csv', index = False)
-            # generate fx to tally up w vars and place in dict: susceptible, recovered, nvaccinated, infected and dead for each day
-                # add to a pandas dataframe for data collection
-        # switch status to new_health_statuses
-    # Create the plot
-    plt.figure(figsize=(10, 6))
-    plt.plot(df['Day'], df[HS.SUSCEPTIBLE], label='Susceptible', color='blue')
-    plt.plot(df['Day'], df[HS.INFECTED], label='Infected', color='red')
-    plt.plot(df['Day'], df[HS.RECOVERED], label='Recovered', color='green')
-    plt.plot(df['Day'], df[HS.DEAD], label='Dead', color='black')
-
-    # Customize the plot
-    plt.title('Virus Spread Simulation Over Time')
-    plt.xlabel('Days')
-    plt.ylabel('Number of People')
-    plt.legend()
-    plt.grid(True)
-
-    # Save and show the plot
-    plt.savefig('virus_simulation.png')
-    plt.show()
-
-
-    # print(daily_counts)
-    # for i in population:
-    #     print(i)
+    # write entire dataframe to csv file
+    # Simulation.write_status_counts_to_file(df, 'out.csv', index = False)
 
 if __name__ == "__main__":
-    typer.run(main)
+    app(main)
+    # typer.run(main)
 
-''' 12/04
-- simulate runs one simulation of n days -> prints out each day
-- what will output be for virus? figure out wha capture from each to output as a whole program
-    - normalize: combine into one format
-- push data to dataframe as opposed to I/O
-    - output to excel and look at data before matplotlib
-
-pydantic
-dataclasses- real python
 '''
+To Do:
+    - pydantic
+    - unit tests
 
 
+inputs/outputs:
+    - program 1
+        - input: tprob, dprob, vprob, pop count, infected, days
+        - output: .csv file
+    - program 2
+        - input: number of trials
+        - output: csv file for each trial run, csv file with statistical analysis: std. dev.
+    - program 3
+        - dmin dmax input_file output_file
+        - output file
 
+- make three apps sub-commands
+    - use typer sub commands
 
+To do:
+    - read pydantic
+    - property based testing (pbt)
+    - 
+'''
