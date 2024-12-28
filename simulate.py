@@ -27,15 +27,18 @@ class HS(int, Enum):
 HealthStatus = HS | int
 
 class Simulation:
-    def __init__(self, population: int = DEFAULT_POPULATION, days: int = DEFAULT_DAYS, 
-                 infected: int = DEFAULT_INFECTED_INITIAL,
-                 vprob: Annotated[float, typer.Argument()] = 0.5,
-                 population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION):
+    def __init__(self, population: int,
+                 infected: int,
+                 population_count: int):
         self._population = population # should not be touched directly
-        self._days = days
+        # self._days = days
         self._infected = infected
-        self.vprob = vprob
         self.population_count = population_count
+
+        # self.nvaccinated = vprob * population_count
+        # generate a list of Person objects
+        self._population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population_count - infected)]      
+        random.shuffle(self.population)
 
     @property
     def population(self) -> int:
@@ -72,20 +75,20 @@ class Simulation:
     
     # function to aggregate results from one day of analysis
     # consists of health statuses as keys and counts as values
-    def aggregate_health_status_counts(population: List['Person']) -> dict: #TODO: should this be a global fx or class fx
-        status_counts = {
-            'Day':0,
-            HS.SUSCEPTIBLE: 0,
-            HS.INFECTED: 0,
-            HS.RECOVERED: 0,
-            HS.DEAD: 0,
-            HS.VACCINATED: 0
-        }
+    # def aggregate_health_status_counts() -> dict: #TODO: should this be a global fx or class fx
+    #     # status_counts = {
+    #     #     'Day':0,
+    #     #     HS.SUSCEPTIBLE: 0,
+    #     #     HS.INFECTED: 0,
+    #     #     HS.RECOVERED: 0,
+    #     #     HS.DEAD: 0,
+    #     #     HS.VACCINATED: 0
+    #     # }
 
-        for person in population:
-            status_counts[person.health_status] += 1
+    #     # for person in population:
+    #     #     status_counts[person.health_status] += 1
 
-        return status_counts
+    #     return status_counts
 
     # #TODO: method to count values for each state at end of each day
     # def d():
@@ -114,39 +117,55 @@ class Simulation:
         plt.show() 
     
     def run(self, tprob: float, dprob: float, days: int, population: List['Person']): 
-        # # create empty dataframe
-        # df = pd.DataFrame(columns = ['Day', HS.SUSCEPTIBLE, HS.INFECTED, HS.RECOVERED, HS.DEAD, HS.VACCINATED])
-        # for day in range(days): # iterate over each day
-            # empty_row = pd.Series(0, index = ['Day', HS.SUSCEPTIBLE, HS.INFECTED, HS.RECOVERED, HS.DEAD, HS.VACCINATED])
-        for person in population: # check each persons status on each day
-            if person.health_status == HS.SUSCEPTIBLE:
-                nexposures: int = random.randint(1, 8) # randomly generate int to simulate number of exposures Person objects encounters each day
-                other_persons_list: List[Person] = random.sample(population, random.randint(1, min(nexposures, len(population)))) 
-                if person.catch_or_not(tprob, other_persons_list):
-                    person.health_status = HS.INFECTED
-                    person.sick_days = 1
-            elif person.health_status == HS.INFECTED:
-                if person.die_or_not(dprob, random.random(), random.random(), person):
-                    person.health_status = HS.DEAD
-                else:
-                    days_sick = person.num_sick_days_greater_than_max_sick_days(person, random.random())
-                    if days_sick > 14:
-                        person.health_status = HS.RECOVERED
-                    else: 
-                        person.sick_days += 1
-            elif person.health_status == HS.RECOVERED:
-                continue
-    
-    def compile_each_days_health_status_counts(df, day):
-        # aggregate each days count of health statuses
-        # returns a dict of health statuses and counts for the day
-        daily_counts = Simulation.aggregate_health_status_counts(population) 
-        daily_counts['Day'] = day
-        # # add each days aggregated counts to dataframe df
-        df.loc[day] = daily_counts
+        daily_counts= []
+        # create dictionary for updating health statuses
+        status_counts = {
+            'Day':0,
+            HS.SUSCEPTIBLE: 0,
+            HS.INFECTED: 0,
+            HS.RECOVERED: 0,
+            HS.DEAD: 0,
+            HS.VACCINATED: 0
+        }
+        # health_status_dict = self.aggregate_health_status_counts() # create empty dataframe
+        # create dataframe to hold values
+        df = pd.DataFrame(columns = ['Day', HS.SUSCEPTIBLE, HS.INFECTED, HS.RECOVERED, HS.DEAD, HS.VACCINATED])
+        for day in days:
+            for person in population: # check each persons status on each day
+                if person.health_status == HS.SUSCEPTIBLE:
+                    nexposures: int = random.randint(1, 8) # randomly generate int to simulate number of exposures Person objects encounters each day
+                    other_persons_list: List[Person] = random.sample(population, random.randint(1, min(nexposures, len(population)))) 
+                    if person.catch_or_not(tprob, other_persons_list):
+                        person.health_status = HS.INFECTED
+                        person.sick_days = 1
+                        status_counts[HS.INFECTED] += 1
+                elif person.health_status == HS.INFECTED:
+                    if person.die_or_not(dprob, random.random(), random.random(), person):
+                        person.health_status = HS.DEAD
+                        status_counts[HS.DEAD] += 1
+                    else:
+                        days_sick = person.num_sick_days_greater_than_max_sick_days(person, random.random())
+                        if days_sick > 14:
+                            person.health_status = HS.RECOVERED
+                            status_counts[HS.RECOVERED] += 1
+                        else: 
+                            person.sick_days += 1
+                elif person.health_status == HS.RECOVERED:
+                    continue
 
-        # print(df)
-        # return df
+            status_counts['Day'] = day
+            df.loc[day] = status_counts
+        print(df)
+        return df
+    
+    # def compile_each_days_health_status_counts(df, day):
+    #     # aggregate each days count of health statuses
+    #     # returns a dict of health statuses and counts for the day
+    #     daily_counts = Simulation.aggregate_health_status_counts(population) 
+        daily_counts['Day'] = day
+    #     # # add each days aggregated counts to dataframe df
+    #     df.loc[day] = daily_counts
+
     
 
 
@@ -234,13 +253,13 @@ def analyze(days: Annotated[int, typer.Argument()],
 
 '''simulate will run a single simulation'''
 @app.command()
-def simulate(days: Annotated[int, typer.Argument()],
-            tprob: Annotated[float, typer.Argument()] = 0.5, 
-            dprob: Annotated[float, typer.Argument()] = 0.5): 
-    sim = Simulation(15, 10, 2)
-    ndays = sim.population
-    print(ndays) 
-    # df = sim.run(...)
+def simulate(tprob: Annotated[float, typer.Argument()] = 0.5, 
+             dprob: Annotated[float, typer.Argument()] = 0.5,
+             infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
+             days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
+             population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION): 
+    sim = Simulation(population_count, infected)
+    df = sim.run(tprob, dprob, days)
     # df.save_csv(filename)
    
     # create empty dataframe
@@ -255,17 +274,17 @@ def simulate(days: Annotated[int, typer.Argument()],
     
 
 # set up population list 
-def main(vprob: Annotated[float, typer.Argument()] = 0.5,
-         population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION, 
-         infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
-         days: Annotated[int, typer.Argument()] = DEFAULT_DAYS): 
+# def main(vprob: Annotated[float, typer.Argument()] = 0.5,
+#          population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION, 
+#          infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
+#          days: Annotated[int, typer.Argument()] = DEFAULT_DAYS): 
     
-    nvaccinated = vprob * population_count
-    # generate list of Person objects
-    # a count based on the CL value passed are intialized to a health status of infected 
-    population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population_count - infected)]      
-    # p = Person(sick_days = 15)
-    random.shuffle(population)
+#     nvaccinated = vprob * population_count
+#     # generate list of Person objects
+#     # a count based on the CL value passed are intialized to a health status of infected 
+#     population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population_count - infected)]      
+#     # p = Person(sick_days = 15)
+#     random.shuffle(population)
 
 
 if __name__ == "__main__":
