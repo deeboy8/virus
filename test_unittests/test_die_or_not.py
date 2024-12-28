@@ -65,3 +65,7 @@ def test_die_or_not_random4(person, status_list):
 def test_die_or_not_random5(person, status_list):
     result = person.die_or_not(0.4, 14, 1, [0, -1, 0, -2, 3], 0.43, 0.05)
     assert result == 0
+
+'''11/18
+- add types to arguments and local vars 
+- uninos for function types'''

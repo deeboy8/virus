@@ -124,7 +124,7 @@ def test_die_or_not_empty_list(person, status_list):
     with pytest.raises(IndexError):
         result = person.die_or_not(0.1, 5, 4, [], 0.2, 0.03)
    
-def test_die_or_not_random1(person, status_list):  
+def test_die_or_not_random1(person: Person, status_list):  
     result = person.die_or_not(0.1, 14, 4, [0, -1, 0, -2, 3], 0.2, 0.03)
     assert result == 4
 
