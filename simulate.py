@@ -12,9 +12,9 @@ from pydantic import BaseModel, Field
 
 app = typer.Typer()
 
-DEFAULT_POPULATION = 10
-DEFAULT_DAYS = 5
-DEFAULT_INFECTED_INITIAL = 1
+DEFAULT_POPULATION = 100
+DEFAULT_DAYS = 10
+DEFAULT_INFECTED_INITIAL = 10
 MAX_NEXPOSURES: int = 21
 
 class HS(int, Enum):
@@ -67,7 +67,7 @@ class Simulation:
             raise ValueError("counted of infected individuals can not be a negative number")
         self._infected = infected
 
-    def write_counts_to_file(self, df: pd.DataFrame, filename: str): 
+    def write_values_to_file(self, df: pd.DataFrame, filename: str): 
         df.to_csv(filename, index = False)
 
     def plot(df: pd.DataFrame):
@@ -89,7 +89,7 @@ class Simulation:
         plt.savefig('virus_simulation.png')
         plt.show() 
     
-    def generate_health_status_dict(self) -> dict:
+    def health_status_dict(self) -> dict:
         status_counts = {
             'Day':0,
             HS.SUSCEPTIBLE: DEFAULT_POPULATION - DEFAULT_INFECTED_INITIAL,
@@ -103,14 +103,22 @@ class Simulation:
     
     def calculate_stats(self, df: pd.DataFrame) -> float: 
         # take avg of all rows in column 1
-        avg = df['AVG'].mean()
-        stdev = df['STDEV'].mean()
-        
-        return avg, stdev
+        avg = df[HS.DEAD].mean()
+        stdv = df[HS.DEAD].std()
+        return avg, stdv
+    
+    def generate_stats_dict(self):
+        adf_dict = {
+            'Trial': 0,
+            'AVG': 0,
+            'STDV': 0
+        }
+
+        return adf_dict
     
     def run(self, tprob: float, dprob: float, days: int): #, population: List['Person']): 
         daily_counts= []
-        status_counts: dict = self.generate_health_status_dict()
+        status_counts: dict = self.health_status_dict()
         df = pd.DataFrame(columns = ['Day', HS.SUSCEPTIBLE, HS.INFECTED, HS.RECOVERED, HS.DEAD, HS.VACCINATED])
         for day in range(days):
             for person in self.population: # check each persons status on each day
@@ -137,7 +145,7 @@ class Simulation:
 
             status_counts['Day'] = day
             df.loc[day] = status_counts
-        print(df)
+        # print(df)
         return df
 
 # @dataclass
@@ -200,44 +208,36 @@ class Person(BaseModel):
 def visualize():
     pass
 
+# simulate n simulations
 @app.command()
 def analyze(nsimulations: Annotated[int, typer.Argument],
-            tprob: Annotated[float, typer.Argument()] = 0.5, 
+            tprob: Annotated[float, typer.Argument()] = 0.05, 
             dprob: Annotated[float, typer.Argument()] = 0.5,
             days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
             infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
             population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION): # concerned with writing down the avg deaths for each trial run
-    # adf = df of columns with avg, stdv
-    adf = pd.DataFrame(columns = ['AVG', 'STDEV'])
-    for trial in nsimulations:
+    adf = pd.DataFrame(columns = ['AVG', 'STDV'])
+    for trial in range(nsimulations):
         sim = Simulation(population_count, infected)
+        adf_dict = sim.generate_stats_dict()
         df = sim.run(tprob, dprob, days)
-        avg, stdv = sim.calculate_stats(df)
-        # adf.append(avg, stdv)
-    
-    # adf.save_csv(filename)
-    #_______________________________
-    # create df
-    # run simulate n times using
-        # run a single simulation over a specific number of days
-        # determine statistical analysis for each 100 day simulation: avg., stdf
-        # update df for this specific simulation
-    # return df
-    pass
+        adf_dict['AVG'], adf_dict['STDV'] = sim.calculate_stats(df)
+        adf_dict['Trial'] = trial
+        adf.loc[trial + 1] = adf_dict
+    print(adf)
+    sim.write_values_to_file(adf, 'analyze.csv')
 
-'''simulate will run a single simulation'''
+# run a single simulation
 @app.command()
-def simulate(tprob: Annotated[float, typer.Argument()] = 0.5, 
+def simulate(tprob: Annotated[float, typer.Argument()] = 0.05, 
              dprob: Annotated[float, typer.Argument()] = 0.5,
              infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
              days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
              population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION): 
     sim = Simulation(population_count, infected)
     df = sim.run(tprob, dprob, days)
-    sim.write_counts_to_file(df, 'simulate.csv')
-
-def main():
-    pass
+    print(df)
+    sim.write_values_to_file(df, 'simulate.csv')
 
 if __name__ == "__main__":
     app()
@@ -260,7 +260,4 @@ inputs/outputs:
         - dmin dmax input_file output_file
         - output file
 
-        
-        Issues
-            can't use debugger with Typer framework/package
 '''
