@@ -234,15 +234,16 @@ def simulate(tprob: Annotated[float, typer.Argument()] = 0.05,
     df = sim.run(tprob, dprob, days)
     print(df) #TODO: remove
     sim.write_values_to_file(df, SIMULATE_FILE)
-    value = df.iloc[8, 4]
+    dead_value = df.iloc[8, 4]
+    recovered_value = df.iloc[8, 4]
     print(f"Populaiton: {population_count}")
     print(f"Vaccination Probability: {vaccinated}")
     print(f"Transmission Probability: {tprob}")
     print(f"Initial Infections: {infected}")
     print(f"Siumulation Period: {days}")
-    print(f"Number of Recovered: {df.iloc[8, 4]}") #TODO: get value but not df
-    print(f"Number of Dead: {df[HS.DEAD]}") #TODO: get value but not df
-    print(f"Case Fatality Rate: {df[HS.DEAD]/df[HS.RECOVERED]}") #TODO: get value but not df
+    print(f"Number of Recovered: {df.iloc[8, 3]}") #TODO: get value but not df
+    print(f"Number of Dead: {df.iloc[8, 4]}") #TODO: get value but not df
+    print(f"Case Fatality Rate: {dead_value/recovered_value}") #TODO: get value but not df
 
 if __name__ == "__main__":
     app()
