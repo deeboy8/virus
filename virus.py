@@ -11,9 +11,9 @@ import csv
 
 app = typer.Typer()
 
-DEFAULT_POPULATION = 1000
-DEFAULT_DAYS = 100
-DEFAULT_INFECTED_INITIAL = 100
+DEFAULT_POPULATION = 10
+DEFAULT_DAYS = 10
+DEFAULT_INFECTED_INITIAL = 1
 MAX_NEXPOSURES: int = 21
 
 SIMULATE_FILE = 'simulate.csv'
@@ -32,10 +32,12 @@ HealthStatus = HS | int
     # function to import 
 
 class Simulation:
-    def __init__(self, population: int, infected: int):
+    def __init__(self, population: int, infected: int, vaccinated: int):
+        self.vaccinated = vaccinated
         self._infected = infected
         # generate a list of Person objects
-        self._population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(transmission_rate=random.random()) for _ in range(population - infected)]      
+        self._population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(health_status=HS.VACCINATED, sick_days = 0) for _ in range(vaccinated)]+ [Person(transmission_rate=random.random()) for _ in range(population - (infected + vaccinated))] 
+        print(self._population)     
         random.shuffle(self.population)
 
     @property
@@ -100,7 +102,7 @@ class Simulation:
             HS.INFECTED: DEFAULT_INFECTED_INITIAL,
             HS.RECOVERED: 0,
             HS.DEAD: 0,
-            HS.VACCINATED: 0
+            HS.VACCINATED: self.vaccinated
         }
 
         return status_counts
@@ -144,7 +146,7 @@ class Simulation:
                             status_counts[HS.RECOVERED] += 1; status_counts[HS.INFECTED] -= 1
                         else: 
                             person.sick_days += 1
-                elif person.health_status == HS.RECOVERED:
+                elif person.health_status == HS.RECOVERED or person.health_status == HS.VACCINATED:
                     continue
 
             status_counts['Day'] = day
@@ -258,12 +260,13 @@ def analyze(nsimulations: Annotated[int, typer.Argument],
 @app.command()
 def simulate(tprob: Annotated[float, typer.Argument()] = 0.05, 
              dprob: Annotated[float, typer.Argument()] = 0.05,
-             vaccinated: Annotated[int, typer.Argument()] = 0,
+             vprob: Annotated[float, typer.Argument()] = 0.0,
              infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
              days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
              population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION,
              output_file: Annotated[str, typer.Argument()] = SIMULATE_FILE): 
-    sim = Simulation(population_count, infected)
+    vaccinated: int = int(vprob * population_count)
+    sim = Simulation(population_count, infected, vaccinated)
     df = sim.run(tprob, dprob, days)
     print(df)
     sim.write_values_to_file(df, output_file)
@@ -271,3 +274,9 @@ def simulate(tprob: Annotated[float, typer.Argument()] = 0.05,
 
 if __name__ == "__main__":
     app()
+
+
+"Questions for Gilman: 1. how vacc supposed to work from expereince? ()"
+
+#Me: RECOVERED is not getting changing in values. If infected is going to zero then they should be counted as recovered. Only sus, infected, and dead or changing. Not even vacc changing with adding values.
+    #problem: vaccinated prob with instantiation of list of person objects, recovered must be with run() logic
