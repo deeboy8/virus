@@ -36,8 +36,7 @@ class Simulation:
         self.vaccinated = vaccinated
         self._infected = infected
         # generate a list of Person objects
-        self._population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(health_status=HS.VACCINATED, sick_days = 0) for _ in range(vaccinated)]+ [Person(transmission_rate=random.random()) for _ in range(population - (infected + vaccinated))] 
-        print(self._population)     
+        self._population: List[Person] = [Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)] + [Person(health_status=HS.VACCINATED, sick_days = 0) for _ in range(vaccinated)]+ [Person(transmission_rate=random.random()) for _ in range(population - (infected + vaccinated))]    
         random.shuffle(self.population)
 
     @property
@@ -98,7 +97,7 @@ class Simulation:
     def health_status_dict(self) -> dict:
         status_counts = {
             'Day':0,
-            HS.SUSCEPTIBLE: DEFAULT_POPULATION - DEFAULT_INFECTED_INITIAL,
+            HS.SUSCEPTIBLE: DEFAULT_POPULATION - (DEFAULT_INFECTED_INITIAL + self.vaccinated),
             HS.INFECTED: DEFAULT_INFECTED_INITIAL,
             HS.RECOVERED: 0,
             HS.DEAD: 0,
