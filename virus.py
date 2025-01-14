@@ -11,9 +11,9 @@ import csv
 
 app = typer.Typer()
 
-DEFAULT_POPULATION = 10
-DEFAULT_DAYS = 10
-DEFAULT_INFECTED_INITIAL = 1
+DEFAULT_POPULATION = 100
+DEFAULT_DAYS = 100
+DEFAULT_INFECTED_INITIAL = 10
 MAX_NEXPOSURES: int = 21
 
 SIMULATE_FILE = 'simulate.csv'
@@ -163,7 +163,7 @@ class Simulation:
         print(f"Siumulation Period: {days}")
         print(f"Number of Recovered: {df.iloc[8, 3]}") 
         print(f"Number of Dead: {df.iloc[8, 4]}") #
-        print(f"Case Fatality Rate: {round(dead_value/recovered_value, 2)}") #TODO: CALCULATE THIS CORRECTLY, CURRENTLY WRONG dead/all infected
+        print(f"Case Fatality Rate: {round(dead_value/recovered_value, 2)}") #TODO: as dprob increases, rate of recovery descreases and thus end up with divide by zero
 
 @dataclass
 class Person:
@@ -236,24 +236,29 @@ def visualize(dmin: Annotated[int, typer.Argument()],
     df = vis.read_file(input_file)
     vis.generate_histogram(df)
 
+def calculate_vaccinated(vprob: float, population_count: int) -> int:
+    return int(vprob * population_count)
+
 # execute n number of simulations
 @app.command()
 def analyze(nsimulations: Annotated[int, typer.Argument],
             tprob: Annotated[float, typer.Argument()] = 0.05, 
             dprob: Annotated[float, typer.Argument()] = 0.05,
+            vprob: Annotated[float, typer.Argument()] = 0.0,
             days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
             infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
             population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION,
             output_file: Annotated[str, typer.Argument()] = ANALYZE_FILE): 
+    # vaccinated: int = int(vprob * population_count)
     adf = pd.DataFrame(columns = ['AVG_DEATHS', 'STDV'])
     for trial in range(nsimulations):
-        sim = Simulation(population_count, infected)
+        sim = Simulation(population_count, infected, calculate_vaccinated(vprob, population_count))
         adf_dict = sim.generate_statistics_dict()
         df = sim.run(tprob, dprob, days)
         adf_dict['AVG_DEATHS'], adf_dict['STDV'] = sim.calculate_stats(df)
         adf_dict['Trial'] = trial
         adf.loc[trial + 1] = adf_dict
-    sim.write_values_to_file(adf, ANALYZE_FILE)
+    sim.write_values_to_file(adf, output_file)
 
 # run a single simulation
 @app.command()
@@ -264,8 +269,8 @@ def simulate(tprob: Annotated[float, typer.Argument()] = 0.05,
              days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
              population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION,
              output_file: Annotated[str, typer.Argument()] = SIMULATE_FILE): 
-    vaccinated: int = int(vprob * population_count)
-    sim = Simulation(population_count, infected, vaccinated)
+    # vaccinated: int = int(vprob * population_count)
+    sim = Simulation(population_count, infected, calculate_vaccinated(vprob, population_count))
     df = sim.run(tprob, dprob, days)
     print(df)
     sim.write_values_to_file(df, output_file)
@@ -273,9 +278,6 @@ def simulate(tprob: Annotated[float, typer.Argument()] = 0.05,
 
 if __name__ == "__main__":
     app()
-
-
-"Questions for Gilman: 1. how vacc supposed to work from expereince? ()"
 
 #Me: RECOVERED is not getting changing in values. If infected is going to zero then they should be counted as recovered. Only sus, infected, and dead or changing. Not even vacc changing with adding values.
     #problem: vaccinated prob with instantiation of list of person objects, recovered must be with run() logic
