@@ -52,20 +52,20 @@ Example:
 python3 virus.py simulation 0.6 0.015 0.15 10 100 1000 simulate_output.csv
 ```
 
-### 2. Analyze Multiple Trials (`analyze.py`)
+### 2. Analyze Multiple Trials (`analyze`)
 
-Analyze multiple simulation runs and compute average deaths and standard deviations:
+The analyze command runs multiple simulation and computes the average deaths and standard deviations:
 
 ```bash
-python3 virus.py analyze vprob tprob output_file
+python3 virus.py analyze nsiumlations tprob dprob vprob days infected population_count output_file
 ```
 
-Where `n_trials` is the number of simulations to run. All other arguments are same as for simulate.
+- `nsimulations` : The number of simulations to run. All other arguments are same as for simulate.
 
 Example:
 
 ```bash
-python virus.py analyze 1000 0.6 0.015 0.025 10  analyze_output.csv
+python virus.py analyze 1000 0.6 0.015 0.025 10 20 1000 analyze_output.csv
 ```
 
 ### 3. Visualizing Results (`visualize.py`)
@@ -73,42 +73,29 @@ python virus.py analyze 1000 0.6 0.015 0.025 10  analyze_output.csv
 To visualize the results of multiple trials as a histogram, use the following command:
 
 ```bash
-python visualize.py dmin dmax input_file output_file
+python visualize.py dmin dmax input_file
 ```
 
 Where:
 
-- `dmin`: Minimum number of deaths to be included in the histogram,
-- `dmax`: Maximum number of deaths to be included in the histogram,
-- `input_file`: The output file from the analysis,
-- `output_file`: The file where the histogram data will be saved.
+- `dmin`: Minimum number of deaths to be included in the histogram
+- `dmax`: Maximum number of deaths to be included in the histogram
+- `input_file`: The output file from the analysis
 
 Example:
 
 ```bash
-python visualize.py 1000 1250 analyze_output.csv visualize_output.csv
+python visualize.py 1000 1250 analyze_output.csv 
 ```
 
 ## Example Workflow
 
 1. Run the simulation for 100 days:
 
-   ```bash
-   python simulate.py 0.6 0.015 simulate_output.csv
-   ```
-
 2. Analyze multiple trials (e.g., 1,000 trials) to get average deaths:
-
-   ```bash
-   python analyze.py 0.6 0.015 analyze_output.csv
-   ```
 
 3. Visualize the results using a histogram:
 
-   ```bash
-   python visualize.py 1000 1250 analyze_output.csv visualize_output.csv
-   ```
-
 ## Conclusion
 
-This Python-based simulation provides insights into how factors like vaccination and transmission probability affect the spread of a virus. By adjusting the parameters, you can experiment with different scenarios and understand the critical impact of public health measures on virus outbreaks.
+This Python-based simulation provides insights into how factors like vaccination and transmission probability affect the spread of a virus. By adjusting the parameters, the user can experiment with different scenarios and understand the critical impact of public health measures on virus outbreaks.
