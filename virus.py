@@ -12,8 +12,8 @@ from collections import Counter
 
 app = typer.Typer()
 
-DEFAULT_POPULATION = 100
-DEFAULT_DAYS = 10
+DEFAULT_POPULATION = 1000
+DEFAULT_DAYS = 50
 DEFAULT_INFECTED_INITIAL = 10
 MAX_NEXPOSURES: int = 21
 
@@ -120,13 +120,13 @@ class Simulation:
         
         return df
 
-    def update_person_status(self, person: Person, status_counts: dict, tprob: float, dprob: float) -> None:
+    def update_person_status(self, person: Self, status_counts: dict, tprob: float, dprob: float) -> None:
         if person.health_status == HS.SUSCEPTIBLE:
             self._handle_susceptible(person, status_counts, tprob)
         elif person.health_status == HS.INFECTED:
             self._handle_infected(person, status_counts, dprob)
 
-    def _handle_susceptible(self, person: Person, status_counts: dict, tprob: float) -> None:
+    def _handle_susceptible(self, person: Self, status_counts: dict, tprob: float) -> None:
         nexposures: int = random.randint(1, 8) # randomly generate int to simulate number of exposures Person objects encounters each day
         other_persons_list: List[Person] = random.sample(self.population, random.randint(1, min(nexposures, len(self.population)))) #TODO: check for accuracy -> why min
         if person.catch_or_not(tprob, other_persons_list):
@@ -134,7 +134,7 @@ class Simulation:
             person.sick_days = 1
             status_counts[HS.INFECTED] += 1; status_counts[HS.SUSCEPTIBLE] -= 1
 
-    def _handle_infected(self, person: Person, status_counts: dict, dprob: float) -> None:
+    def _handle_infected(self, person: Self, status_counts: dict, dprob: float) -> None:
         if person.die_or_not(dprob, random.random(), random.random(), person):
             person.health_status = HS.DEAD
             status_counts[HS.DEAD] += 1; status_counts[HS.INFECTED] -= 1
@@ -148,23 +148,23 @@ class Simulation:
     
     def print_report(self, df: pd.DataFrame, tprob: float, vaccinated: int, infected: int, days: int, population_count: int) -> None:
         print(f"Populaton: {population_count:,}")
-        print(f"Vaccination Probability: {vaccinated:.2%}")
-        print(f"Transmission Probability: {tprob:.2%}")
-        print(f"Initial Infections: {infected:,}")
-        print(f"Siumulation Period: {days:,}")
-        print(f"Number of Recovered: {df.iloc[8, 3]:,}") 
-        print(f"Number of Dead: {df.iloc[8, 4]:,}") 
+        print(f"Vaccination Probability: {vaccinated}")
+        print(f"Transmission Probability: {tprob}")
+        print(f"Initial Infections: {infected:}")
+        print(f"Siumulation Period: {days:}")
+        print(f"Number of Recovered: {df.iloc[8, 3]:}") 
+        print(f"Number of Dead: {df.iloc[8, 4]:}") 
         # try to calculate CFR but if zero recover will print error
         try:
             dead_value = df.iloc[8, 4] #TODO: UNIT TEST
             recovered_value = df.iloc[8, 2].max() #TODO: UNIT TEST
             fatality_rate = round(dead_value/recovered_value, 2) if recovered_value != 0 else 'N/A'
-            print(f"Case Fatality Rate: {fatality_rate:,}") #TODO: as dprob increases, rate of recovery descreases and thus end up with divide by zero
+            print(f"Case Fatality Rate: {fatality_rate}") #TODO: as dprob increases, rate of recovery descreases and thus end up with divide by zero
         except IndexError:
             print("DivideByZero error") #TODO: should this be printed to a log like fprintf or snprintf?
             
 
-@dataclass(frozen = True, slots = True)
+@dataclass(frozen = False, slots = True)
 class Person:
     MAX_SICK_DAYS: int = 14
     health_status: HealthStatus = HS.SUSCEPTIBLE
@@ -216,8 +216,8 @@ class Person:
         return self.check_if_survive(dprob, rand_dprob, sickness_factor, person)
 
 class Visualize: #TODO: should this be a class or just global functions
-    def __init__(self, dmin: int, dmax: int):
-        self.dmin = dmin
+    def __init__(self, dmin: int, dmax: int): #TODO: not using dmin or dmax
+        self.dmin =  dmin
         self.dmax = dmax
 
     # read CSV file into pandas df
@@ -226,7 +226,7 @@ class Visualize: #TODO: should this be a class or just global functions
     
     # generate historgram using matplotlib
     def generate_histogram(self, df: pd.DataFrame):
-        plt.hist(df['AVG_DEATHS'])
+        plt.hist(round(df['AVG_DEATHS']))
         plt.xlabel('Deaths')
         plt.ylabel('Frequency')
         plt.title('Deaths per Trial')
