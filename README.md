@@ -24,79 +24,221 @@ The project consists of three parts with each acting as a command to be passed i
 
 - **Multiple Trials**: The program can run the simulation multiple times, using the analyze command, under the same parameters to analyze the variance in results, providing average statistics and standard deviations for deeper insights.
 
+## Installation
+
+### Prerequisites
+
+- Python 3.10 or higher
+- pip (Python package manager)
+
+### Setup Instructions
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd virus
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Verify installation by running tests:
+```bash
+pytest
+```
+
+Expected output: `54 passed, 10 skipped`
+
+## Quick Start
+
+Get up and running with a complete workflow:
+
+```bash
+# 1. Run a simple 30-day simulation
+python3 virus.py simulate 0.02 0.1 0.3 5 30 500 my_simulation.csv
+
+# 2. Run multiple trials for statistical analysis
+python3 virus.py analyze 100 0.02 0.1 0.3 30 5 500 my_analysis.csv
+
+# 3. Visualize the results
+python3 virus.py visualize my_simulation.csv
+```
+
+This simulates a virus with:
+- 2% transmission probability per encounter
+- 10% death probability for infected individuals
+- 30% of population vaccinated
+- 5 initially infected people
+- 500 total population
+- 30 days of simulation
+
+## Code Architecture
+
+### Core Classes
+
+**`HS` (Enum)** - Health Status Constants
+- `SUSCEPTIBLE` (0): Not infected, can catch the virus
+- `INFECTED` (1): Currently infected
+- `RECOVERED` (2): Previously infected, now immune
+- `DEAD` (3): Deceased from infection
+- `VACCINATED` (4): Vaccinated, immune to infection
+
+**`Person` (Dataclass)** - Individual in the Population
+- Attributes: `health_status`, `sick_days`, `transmission_rate`, `MAX_SICK_DAYS`
+- Key methods:
+  - `catch_or_not()`: Determines if susceptible person gets infected based on exposure
+  - `die_or_not()`: Determines if infected person dies or continues being sick
+  - `validate_probability()`: Ensures probability values are between 0 and 1
+  - `calculate_adjusted_sick_days()`: Calculates recovery likelihood
+
+**`Simulation`** - Population Manager and Simulation Engine
+- Manages a list of Person objects
+- Tracks daily health status counts
+- Key methods:
+  - `run()`: Main simulation loop, returns DataFrame with daily statistics
+  - `update_person_status()`: Updates each person's status daily
+  - `health_status_dict()`: Returns current population status counts
+  - `calculate_stats()`: Computes averages and standard deviations
+
+**`Visualize`** - Results Visualization
+- Generates histograms and time-series plots
+- Reads CSV output from simulations
+- Creates visual representations of virus spread
+
+### How the Simulation Works
+
+The simulation runs day-by-day, updating each person's status:
+
+**Each day:**
+
+1. **For SUSCEPTIBLE persons:**
+   - Check if they encounter any infected persons in the population
+   - Calculate infection probability: `transmission_rate < tprob`
+   - If infected: change status to `INFECTED`, set `sick_days = 1`
+
+2. **For INFECTED persons:**
+   - Increment `sick_days` counter
+   - **Death check**: If `random() < dprob`, person dies → status = `DEAD`
+   - **Recovery check**: If `adjusted_sick_days > MAX_SICK_DAYS` (14 days), person recovers → status = `RECOVERED`
+   - Otherwise: remain `INFECTED`
+
+3. **VACCINATED, RECOVERED, and DEAD** persons don't change status
+
+**Output:** DataFrame with daily counts of each health status
+
+## Output Format
+
+Simulation results are saved as CSV files with the following structure:
+
+### Simulation Output (from `simulate` command)
+
+| Day | SUSCEPTIBLE | INFECTED | RECOVERED | DEAD | VACCINATED |
+|-----|-------------|----------|-----------|------|------------|
+| 0   | 485         | 5        | 0         | 0    | 10         |
+| 1   | 483         | 7        | 0         | 0    | 10         |
+| 2   | 480         | 9        | 1         | 0    | 10         |
+| ... | ...         | ...      | ...       | ...  | ...        |
+
+### Analysis Output (from `analyze` command)
+
+| AVG_INFECTED | AVG_DEATHS | AVG_DEATH_STDV |
+|--------------|------------|----------------|
+| 45.3         | 12.7       | 3.2            |
+
+- **AVG_INFECTED**: Average number of infected individuals across all trials
+- **AVG_DEATHS**: Average number of deaths across all trials
+- **AVG_DEATH_STDV**: Standard deviation of death counts (measures variability)
+
 ## Running the Programs
 
-The program uses the the Python library Typer which builds quick CLI applications based on type hinting. Most command options/arguments have defaults but can be overwritten.
+The program uses the Python library Typer which builds CLI applications based on type hinting. All commands follow the pattern: `python3 virus.py <command> [arguments]`
 
 ### 1. Virus Spread Simulation (`simulate`)
 
-To run a simulation, or one trial, for a specified number of days with varying vaccination rates and transmission probabilities, use the following command:
+Runs a single simulation trial for a specified number of days.
 
+**Command syntax:**
 ```bash
-python3 virus.py tprob dprob vprob infected days population_count output_file
+python3 virus.py simulate <tprob> <dprob> <vprob> <infected> <days> <population_count> <output_file>
 ```
 
-Where:
+**Arguments:**
+- `tprob`: Transmission probability (0.0-1.0). Example: `0.015` = 1.5% chance per encounter
+- `dprob`: Death probability (0.0-1.0). Example: `0.35` = 35% chance of dying when infected
+- `vprob`: Vaccination fraction (0.0-1.0). Example: `0.6` = 60% of population vaccinated
+- `infected`: Number of initially infected individuals. Example: `10`
+- `days`: Number of days to simulate. Example: `100`
+- `population_count`: Total population size. Example: `1000`
+- `output_file`: Name of CSV output file. Example: `simulate_output.csv`
 
-- `tprob`: Transmission probability (e.g., `0.015` means 1.5% chance of transmission per encounter)
-- `dprob`: Death probability (e.g., `0.35` means 35% chance of an infected persons dying)
-- `vprob`: Fraction of the population vaccinated (e.g., `0.6` for 60% vaccinated)
-- `infected`: Number of individuals who may be infected at start of simulation.
-- `days`: Number of days to simulate a viral spread for.
-- `population_count`: Number of individuals with population.
-- `output_file`: Name of the file where the results will be saved.
-
-Example:
-
+**Example:**
 ```bash
-python3 virus.py simulation 0.6 0.015 0.15 10 100 1000 simulate_output.csv
+python3 virus.py simulate 0.015 0.35 0.6 10 100 1000 simulate_output.csv
 ```
+
+This simulates 100 days with 1,000 people, 10 initially infected, 60% vaccinated, 1.5% transmission rate, and 35% death rate.
 
 ### 2. Analyze Multiple Trials (`analyze`)
 
-The analyze command runs multiple simulation and computes the average deaths and standard deviations:
+Runs multiple simulations to calculate average statistics and standard deviations.
 
+**Command syntax:**
 ```bash
-python3 virus.py analyze nsiumlations tprob dprob vprob days infected population_count output_file
+python3 virus.py analyze <nsimulations> <tprob> <dprob> <vprob> <infected> <days> <population_count> <output_file>
 ```
 
-- `nsimulations` : The number of simulations to run. 
+**Additional argument:**
+- `nsimulations`: Number of simulation trials to run. Example: `1000`
 
-**Note** : All other arguments are same as for simulate.
+**Note:** All other arguments are the same as `simulate`.
 
-Example:
-
+**Example:**
 ```bash
-python virus.py analyze 1000 0.6 0.015 0.025 10 20 1000 analyze_output.csv
+python3 virus.py analyze 1000 0.015 0.35 0.6 10 100 1000 analyze_output.csv
 ```
 
-### 3. Visualizing Results (`visualize.py`)
+This runs 1,000 simulation trials with the same parameters and computes average deaths and standard deviation.
 
-To visualize the results of multiple trials as a histogram, use the following command:
+### 3. Visualizing Results (`visualize`)
 
+Generates plots and histograms from simulation data.
+
+**Command syntax:**
 ```bash
-python visualize.py dmin dmax input_file
+python3 virus.py visualize <input_file>
 ```
 
-Where:
+**Arguments:**
+- `input_file`: Path to CSV file from `simulate` or `analyze` command
 
-- `dmin`: Minimum number of deaths to be included in the histogram
-- `dmax`: Maximum number of deaths to be included in the histogram
-- `input_file`: The output file from the analysis
-
-Example:
-
+**Example:**
 ```bash
-python visualize.py 1000 1250 analyze_output.csv 
+python3 virus.py visualize simulate_output.csv
 ```
+
+This displays a time-series plot showing how each health status changes over time.
 
 ## Example Workflow
 
-1. Run the simulation for 100 days.
+Here's a complete workflow demonstrating all three commands:
 
-2. Analyze multiple trials (e.g., 1,000 trials) to get statistical data.
+```bash
+# Step 1: Run a simulation for 50 days
+python3 virus.py simulate 0.02 0.15 0.4 10 50 800 day50_sim.csv
 
-3. Visualize the resultant data in histogram format.
+# Step 2: Run 500 trials to get statistical insights
+python3 virus.py analyze 500 0.02 0.15 0.4 10 50 800 stats_500trials.csv
+
+# Step 3: Visualize the single simulation results
+python3 virus.py visualize day50_sim.csv
+```
+
+**Expected outcomes:**
+- `day50_sim.csv`: Daily health status counts for 50 days
+- `stats_500trials.csv`: Average infected count, average deaths, death standard deviation
+- Visual plots showing infection curve over time
 
 ## Testing
 
@@ -199,6 +341,98 @@ pytest test_unittests/ -v
 - **Reinfection**: Allow recovered individuals to be reinfected
 - **Age Demographics**: Different mortality rates by age group
 - **Quarantine Modeling**: Simulate isolation policies
+
+## Development
+
+### Running Tests During Development
+
+```bash
+# Run all tests
+pytest
+
+# Run tests with verbose output
+pytest -v
+
+# Run specific test file
+pytest test_unittests/test_person.py -v
+
+# Run specific test class
+pytest test_unittests/test_person.py::TestPersonInitialization -v
+
+# Run with coverage and watch for changes
+pytest --cov=virus --cov-report=term-missing
+```
+
+### Project File Structure
+
+```
+virus/
+├── virus.py                      # Main application (714 lines)
+│   ├── HS (Enum)                 # Health status constants
+│   ├── Person (Dataclass)        # Individual person logic
+│   ├── Simulation (Class)        # Population manager
+│   └── Visualize (Class)         # Plotting and visualization
+│
+├── test_unittests/               # Test suite
+│   ├── conftest.py               # Shared test fixtures
+│   ├── test_person.py            # Person class tests (16 tests)
+│   ├── test_simulation.py        # Simulation tests (20 tests)
+│   ├── test_catch_or_not.py      # Infection mechanics (18 tests)
+│   ├── test_cli.py               # CLI test stubs
+│   └── test_visualization.py     # Visualization test stubs
+│
+├── README.md                     # This file
+├── TESTING.md                    # Comprehensive testing guide
+├── COVERAGE_ANALYSIS.md          # Coverage report explanation
+├── requirements.txt              # Python dependencies
+├── pytest.ini                    # Pytest configuration
+└── .gitignore                    # Git ignore rules
+```
+
+### Code Style and Standards
+
+This project follows:
+- **PEP 8**: Python style guidelines
+- **Type Hints**: All functions have type annotations
+- **Docstrings**: Google-style docstrings for all classes and methods
+- **Testing**: Comprehensive unit tests with >60% coverage
+- **Documentation**: Clear README and technical documentation
+
+### Contributing
+
+To contribute to this project:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Write tests for new functionality
+4. Ensure all tests pass: `pytest`
+5. Ensure code coverage remains high: `pytest --cov=virus`
+6. Update documentation as needed
+7. Submit a pull request
+
+### Key Implementation Details
+
+**Random Transmission Logic:**
+```python
+# Person has unique transmission_rate (0-1)
+# Infection occurs if: transmission_rate < tprob
+if person.transmission_rate < tprob:
+    person.health_status = HS.INFECTED
+```
+
+**Death vs. Recovery:**
+```python
+# Check death first
+if random.random() < dprob:
+    return HS.DEAD
+
+# If survived, check recovery (14-day threshold with randomness)
+if adjusted_sick_days > MAX_SICK_DAYS:
+    return HS.RECOVERED
+```
+
+**Population Conservation:**
+The simulation maintains a constant population count. The sum of all health statuses always equals the initial population (deaths are tracked, not removed).
 
 ## Dependencies
 
