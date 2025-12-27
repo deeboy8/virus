@@ -98,6 +98,125 @@ python visualize.py 1000 1250 analyze_output.csv
 
 3. Visualize the resultant data in histogram format.
 
+## Testing
+
+This project includes comprehensive unit tests demonstrating software quality practices suitable for portfolio presentation.
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage report
+pytest --cov=virus --cov-report=html
+
+# Run specific test file
+pytest test_unittests/test_simulation.py
+
+# View detailed HTML coverage report
+open htmlcov/index.html
+```
+
+### Test Structure
+
+The test suite is organized into focused test files:
+
+- **`test_person.py`** - Unit tests for Person class methods (16 tests)
+  - Initialization and attribute validation
+  - Probability validation
+  - Sick days calculation
+  - Survival/death logic
+
+- **`test_simulation.py`** - Simulation logic and state management (20 tests)
+  - Population initialization
+  - Health status tracking
+  - State transitions
+  - Full simulation runs with edge cases
+
+- **`test_catch_or_not.py`** - Infection transmission mechanics (18 tests)
+  - Infection probability logic
+  - Death probability logic
+  - Edge cases and validation
+
+- **`test_cli.py`** & **`test_visualization.py`** - Test stubs with documentation
+  - Explains why CLI and visualization aren't unit tested
+  - Documents future testing approach
+
+- **`conftest.py`** - Shared test fixtures for code reuse
+
+### Test Coverage
+
+**Current coverage: 62%**
+
+- ✅ **Core business logic: ~100% tested**
+  - Person class methods fully tested
+  - Simulation state management fully tested
+  - All critical paths covered
+
+- ❌ **Intentionally untested (with documentation):**
+  - CLI commands (would require typer mocking)
+  - Visualization methods (would require matplotlib mocking)
+  - See `TESTING.md` for detailed rationale
+
+The 62% coverage reflects strategic testing focused on high-value, testable business logic while documenting intentional exclusions.
+
+### Running a Quick Test
+
+```bash
+# Verify all tests pass
+pytest test_unittests/ -v
+
+# Expected output: 54 passed, 10 skipped
+```
+
+## Known Limitations & Future Improvements
+
+### Current Limitations
+
+- **CLI Testing**: Command-line interface commands are not unit tested
+  - Would require mocking `typer.CliRunner` and file I/O operations
+  - Currently verified through manual testing (see Examples above)
+
+- **Visualization Testing**: Plotting methods are manually verified
+  - Would require mocking `matplotlib.pyplot` 
+  - Future: Could use `pytest-mpl` for image comparison testing
+
+- **Simplified Model Assumptions**:
+  - Vaccination provides 100% immunity (real-world vaccines vary)
+  - Uniform random exposure (no network/contact tracing model)
+  - Fixed recovery period (14 days max)
+  - Binary health states (no severity levels)
+
+### Future Enhancements
+
+- **Advanced Testing**: Add integration tests for CLI workflow
+- **Network Model**: Implement contact-tracing with social networks
+- **Variable Immunity**: Model partial vaccine effectiveness
+- **Reinfection**: Allow recovered individuals to be reinfected
+- **Age Demographics**: Different mortality rates by age group
+- **Quarantine Modeling**: Simulate isolation policies
+
+## Dependencies
+
+Install required packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+Required libraries:
+- `pandas` - Data manipulation and CSV handling
+- `matplotlib` - Visualization and plotting
+- `typer` - CLI application framework
+- `pytest` - Testing framework
+- `pytest-cov` - Test coverage reporting
+
 ## Conclusion
 
 This Python-based simulation provides insights into how factors like vaccination and transmission probability affect the spread of a virus. By adjusting the parameters, the user can experiment with different scenarios and understand the critical impact of public health measures on virus outbreaks.
+
+The project demonstrates professional software engineering practices including comprehensive testing, documentation, and modular design suitable for portfolio presentation.
