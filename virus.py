@@ -86,7 +86,7 @@ class Simulation:
         self.vaccinated = vaccinated
         self._infected = infected
         self._total_population = population  # Store for accurate status tracking
-        # using list comprehnsion and splat operator to generate list of person objects for population 
+        # using list comprehnsion and splat operator to generate list of person objects for population
         # with varying healthstatuses
         self._population: List[Person] = [*(Person(health_status=HS.INFECTED, sick_days = 1) for _ in range(infected)), *(Person(health_status=HS.VACCINATED, sick_days = 0) for _ in range(vaccinated)), *(Person(transmission_rate=random.random()) for _ in range(population - (infected + vaccinated)))]    
         random.shuffle(self.population)
@@ -166,7 +166,7 @@ class Simulation:
             raise ValueError("counted of infected individuals can not be a negative number")
         self._infected = infected
 
-    def write_values_to_file(self, df: pd.DataFrame, filename: str):
+    def write_values_to_file(self, df: pd.DataFrame, filename: str): 
         """
         Write simulation results to a CSV file.
         
@@ -191,7 +191,7 @@ class Simulation:
             HS.DEAD: 0,
             HS.VACCINATED: self.vaccinated
         })
-    
+
     def calculate_stats(self, df: pd.DataFrame) -> tuple:
         """
         Calculate statistical measures from simulation results.
@@ -372,7 +372,7 @@ class Person:
     sick_days: int = 0
     transmission_rate: float = random.random() 
 
-    def validate_probability(self, prob: float, name: str) -> None:
+    def validate_probability(self, prob: float, name: str) -> None: 
         """
         Validate that a probability value is between 0 and 1.
         
@@ -407,10 +407,10 @@ class Person:
         for other_person in other_persons:
             if other_person.health_status == HS.INFECTED: 
                 if self.transmission_rate < tprob:
-                    return True 
+                    return True
         return False
 
-    def catch_or_not(self, tprob: float, other_persons: List[Self]) -> bool:
+    def catch_or_not(self, tprob: float, other_persons: List[Self]) -> bool: 
         """
         Determine if person catches the virus from interactions.
         
@@ -647,7 +647,7 @@ def analyze(nsimulations: Annotated[int, typer.Argument],
             days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
             infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
             population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION,
-            output_file: Annotated[str, typer.Argument()] = ANALYZE_FILE):
+            output_file: Annotated[str, typer.Argument()] = ANALYZE_FILE): 
     """
     CLI command to run multiple simulations and analyze results.
     
@@ -682,12 +682,12 @@ def analyze(nsimulations: Annotated[int, typer.Argument],
 
 @app.command()
 def simulate(vprob: Annotated[float, typer.Argument()],
-            tprob: Annotated[float, typer.Argument()] = 0.5, 
-            dprob: Annotated[float, typer.Argument()] = 0.5,
-            infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
-            days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
-            population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION,
-            output_file: Annotated[str, typer.Argument()] = SIMULATE_FILE):
+             tprob: Annotated[float, typer.Argument()] = 0.5, 
+             dprob: Annotated[float, typer.Argument()] = 0.5,
+             infected: Annotated[int, typer.Argument()] = DEFAULT_INFECTED_INITIAL,
+             days: Annotated[int, typer.Argument()] = DEFAULT_DAYS,
+             population_count: Annotated[int, typer.Argument()] = DEFAULT_POPULATION,
+             output_file: Annotated[str, typer.Argument()] = SIMULATE_FILE): 
     """
     CLI command to run a single virus spread simulation.
     

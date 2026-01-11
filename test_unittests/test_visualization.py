@@ -134,3 +134,4 @@ Future Automation:
 - Mock matplotlib to test that correct methods are called
 """
 
+
