@@ -347,7 +347,7 @@ class Simulation:
         try:
             dead_value = df.iloc[-1, 4]
             recovered_value = df.iloc[-1, 3]
-            fatality_rate = round(dead_value/recovered_value, 2) if recovered_value != 0 else 'N/A'
+            fatality_rate = round(dead_value/(recovered_value + dead_value), 2) if (recovered_value + dead_value) != 0 else 'N/A'
             print(f"Case Fatality Rate: {fatality_rate}")
         except IndexError:
             print("Error calculating fatality rate")
